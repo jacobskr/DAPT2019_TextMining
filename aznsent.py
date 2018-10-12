@@ -9,19 +9,20 @@ import datetime as dt
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
+import nltk
 from textblob import TextBlob
 from elasticsearch import Elasticsearch
 
 file = r'C:\Users\ejvpaba\Desktop\Python\Data\Video_Games_5.json'
 
+with open(file) as x:
+    jsondata = pd.read_json(x, lines=True, chunksize=1000)
+    df = pd.DataFrame()
+    for d in jsondata:
+        df = df.append(d)
+x.close()
+del x
 
-jsondata = pd.read_json(file, lines=True, chunksize=1000)
-df = pd.DataFrame()
-for d in jsondata:
-    df = df.append(d)
-
-
-cols = list(df.columns)
 df['reviewTime'] = pd.to_datetime(df['reviewTime'], format='%m %d, %Y')
 
 reviewdf = df[['asin', 'overall', 'summary', 'reviewText', 'reviewTime']]
@@ -29,17 +30,44 @@ cols_list = ['Item', 'Stars', 'Review_Title', 'Review', 'Date']
 reviewdf.columns = cols_list
 print(reviewdf.head())
 print(reviewdf['Review'].head())
+del df
 
 # Stars distribustion
-stars_count = reviewdf.groupby(['Stars']).count()
-stars_count = stars_count.iloc[:, 0:1]
-stars_count.columns = ['Count']
-plt.bar(stars_count.index, stars_count['Count'])
+stars_count = reviewdf.groupby(['Stars'], as_index=False).count()
+stars_count = stars_count[['Stars', 'Item']]
+stars_count.rename(columns={'Item': 'Count'}, inplace=True)
+plt.bar(stars_count['Stars'], stars_count['Count'])
+plt.show()
+
+# Mean rating overall vs mean rating by item
+itemlist = list(reviewdf.Item.unique())
+itemstars = reviewdf[['Item','Stars']]
+allmean = reviewdf.Stars.mean()
+itemmean = itemstars.groupby('Item', as_index=False).mean()
+plt.hist(itemmean['Stars'])
 plt.show()
 
 # Cumulative Reviews hist/line
 dtlist = sorted(list(reviewdf['Date']))
 plt.hist(dtlist, density=True, histtype='step', cumulative=True)
+
+#Textblob Analysis
+polarity = []
+subjectivity = []
+i = 0
+for row in reviewdf['Review']:
+    comm_blob = TextBlob(row)
+    polarity.append(comm_blob.sentiment[0])
+    subjectivity.append(comm_blob.sentiment[1])
+    i += 1
+    if i % 5000 == 0:
+        print(i)
+    else:
+        continue
+
+reviewdf['Polarity'] = polarity
+reviewdf['Subjectivity'] = subjectivity
+
 
 
 
