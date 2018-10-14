@@ -68,7 +68,41 @@ for row in reviewdf['Review']:
 reviewdf['Polarity'] = polarity
 reviewdf['Subjectivity'] = subjectivity
 
+#Ryan's Code:
 
+#Make Reviews all lower case
+reviewdf['Review_Clean'] = reviewdf['Review'].apply(lambda x: " ".join(x.lower() for x in x.split()))
+
+#Remove punctuation
+reviewdf['Review_Clean'] = reviewdf['Review_Clean'].str.replace('[^\w\s]','')
+
+#Remove english stop words
+stop = stopwords.words('english')
+reviewdf['Review_Clean'] = reviewdf['Review_Clean'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
+
+#Remove the 10 most common words
+freq = pd.Series(' '.join(reviewdf['Review_Clean']).split()).value_counts()[:10]
+
+#Remove the 10 rarest words
+freq = pd.Series(' '.join(reviewdf['Review_Clean']).split()).value_counts()[-10:]
+
+#Lemmatization and Tokenization
+w_tokenizer = nltk.tokenize.WhitespaceTokenizer()
+lemmatizer = nltk.stem.WordNetLemmatizer()
+
+def lemmatize_text(text):
+    return [lemmatizer.lemmatize(w) for w in w_tokenizer.tokenize(text)]
+
+reviewdf['Review_Token'] = reviewdf['Review_Clean'].apply(lemmatize_text)
+
+#Get Review Length for both Originial Reivew and Cleaned Tokens
+reviewdf['Review_Length'] = reviewdf['Review'].apply(lemmatize_text).apply(len)
+reviewdf['Review_Clean_Length'] = reviewdf['Review_Token'].apply(len)
+
+#Calculate number of words removed
+reviewdf['WordsRemoved'] = reviewdf["Review_Length"] - reviewdf['Review_Clean_Length']
+
+#End of Ryan's code
 
 
 #Connect to elasticsearch
