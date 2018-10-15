@@ -10,8 +10,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import requests
 import nltk
+from nltk.corpus import stopwords
 from textblob import TextBlob
 from elasticsearch import Elasticsearch
+#nltk.download('stopwords')
 
 file = r'C:\Users\ejvpaba\Desktop\Python\Data\Video_Games_5.json'
 
@@ -47,9 +49,9 @@ itemmean = itemstars.groupby('Item', as_index=False).mean()
 plt.hist(itemmean['Stars'])
 plt.show()
 
-# Cumulative Reviews hist/line
-dtlist = sorted(list(reviewdf['Date']))
-plt.hist(dtlist, density=True, histtype='step', cumulative=True)
+# Cumulative Reviews hist/line - Not sure why this takes so long
+#dtlist = sorted(list(reviewdf['Date']))
+#plt.hist(dtlist, density=True, histtype='step', cumulative=True)
 
 #Textblob Analysis
 polarity = []
@@ -67,6 +69,19 @@ for row in reviewdf['Review']:
 
 reviewdf['Polarity'] = polarity
 reviewdf['Subjectivity'] = subjectivity
+
+
+#Thought this would be faster, but is slower by far
+#def senti(row):
+#    pol = TextBlob(row['Review']).sentiment[0]
+#    sub = TextBlob(row['Review']).sentiment[1]
+#    return pol, sub
+#    
+#
+#reviewdf['Polarity'], reviewdf['Subjectivity'] = reviewdf.apply(senti, axis=1)
+#
+#t1= time.time()
+
 
 #Ryan's Code:
 
@@ -93,6 +108,7 @@ lemmatizer = nltk.stem.WordNetLemmatizer()
 def lemmatize_text(text):
     return [lemmatizer.lemmatize(w) for w in w_tokenizer.tokenize(text)]
 
+nltk.download('wordnet')
 reviewdf['Review_Token'] = reviewdf['Review_Clean'].apply(lemmatize_text)
 
 #Get Review Length for both Originial Reivew and Cleaned Tokens
