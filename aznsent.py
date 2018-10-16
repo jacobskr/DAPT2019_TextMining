@@ -50,26 +50,27 @@ plt.hist(itemmean['Stars'])
 plt.show()
 
 # Cumulative Reviews hist/line - Not sure why this takes so long
-#dtlist = sorted(list(reviewdf['Date']))
-#plt.hist(dtlist, density=True, histtype='step', cumulative=True)
+dtlist = sorted(list(reviewdf['Date']))
+plt.hist(dtlist, density=True, histtype='step', cumulative=True, bins=1000)
 
 #Textblob Analysis
-polarity = []
-subjectivity = []
-i = 0
-for row in reviewdf['Review']:
-    comm_blob = TextBlob(row)
-    polarity.append(comm_blob.sentiment[0])
-    subjectivity.append(comm_blob.sentiment[1])
-    i += 1
-    if i % 5000 == 0:
-        print(i)
-    else:
-        continue
+def sentiments(df, column):
+    polarity = []
+    subjectivity = []
+    i = 0
+    for row in df[column]:
+        comm_blob = TextBlob(row)
+        polarity.append(comm_blob.sentiment[0])
+        subjectivity.append(comm_blob.sentiment[1])
+        i += 1
+        if i % 5000 == 0:
+            print(i)
+        else:
+            continue
+    df['Polarity'] = polarity
+    df['Subjectivity'] = subjectivity
 
-reviewdf['Polarity'] = polarity
-reviewdf['Subjectivity'] = subjectivity
-
+sentiments(reviewdf, 'Review')
 
 #Thought this would be faster, but is slower by far
 #def senti(row):
@@ -82,9 +83,7 @@ reviewdf['Subjectivity'] = subjectivity
 #
 #t1= time.time()
 
-
 #Ryan's Code:
-
 #Make Reviews all lower case
 reviewdf['Review_Clean'] = reviewdf['Review'].apply(lambda x: " ".join(x.lower() for x in x.split()))
 
