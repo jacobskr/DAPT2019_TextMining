@@ -13,10 +13,11 @@ import nltk
 from nltk.corpus import stopwords
 from textblob import TextBlob
 from elasticsearch import Elasticsearch
+from wordcloud import WordCloud, STOPWORDS
 import numpy as np
 #nltk.download('stopwords')
 
-file = r'C:\Users\User\Desktop\Text Mining\Group assignment\Video_Games_5.json'
+file = r'C:\Users\ejvpaba\Desktop\Python\Data\Video_Games_5.json'
 
 with open(file) as x:
     jsondata = pd.read_json(x, lines=True, chunksize=1000)
@@ -35,6 +36,7 @@ print(reviewdf.head())
 print(reviewdf['Review'].head())
 del df
 
+
 #Textblob Analysis
 def sentiments(df, column):
     polarity = []
@@ -52,34 +54,27 @@ def sentiments(df, column):
     df['Polarity'] = polarity
     df['Subjectivity'] = subjectivity
 
+
 sentiments(reviewdf, 'Review')
 
-#Thought this would be faster, but is slower by far
-#def senti(row):
-#    pol = TextBlob(row['Review']).sentiment[0]
-#    sub = TextBlob(row['Review']).sentiment[1]
-#    return pol, sub
-#    
-#
-#reviewdf['Polarity'], reviewdf['Subjectivity'] = reviewdf.apply(senti, axis=1)
-#
-#t1= time.time()
-
 #Kyle - make function out of Ryan's code/speed up certain lambda functions
-testdf = reviewdf
+
+
 def lemmatize_text(text):
     w_tokenizer = nltk.tokenize.WhitespaceTokenizer()
     lemmatizer = nltk.stem.WordNetLemmatizer()
     return [lemmatizer.lemmatize(w) for w in w_tokenizer.tokenize(text)]
 
+
 def clean_token(df, col, lang):
     stop = stopwords.words(lang)
     df[f'{col}_Clean'] = df[col].str.replace('[^\w\s]','').str.lower()
-    df[f'{col}_Clean'] = testdf['Review_Clean'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
-    df[f'{col}_Token'] = testdf['Review_Clean'].apply(lemmatize_text)
+    df[f'{col}_Clean'] = df[f'{col}_Clean'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
+    df[f'{col}_Token'] = df[f'{col}_Clean'].apply(lemmatize_text)
     x = df[col].apply(len)
     y = df[f'{col}_Token'].apply(len)
     df['WordsRemoved'] = y - x
+
 
 clean_token(reviewdf, 'Review', 'english')
 
@@ -153,7 +148,36 @@ plt.xlabel('Average Stars')
 plt.ylabel('Scaled Polarity')
 plt.scatter(itemmeanarray, scaled_polarity, alpha=.25)
 
-
 # Cumulative Reviews hist/line - Not sure why this takes so long
 dtlist = sorted(list(reviewdf['Date']))
 plt.hist(dtlist, density=True, histtype='step', cumulative=True, bins=1000)
+
+#Top 10th and bottom 10th percentile reviews
+top10th = reviewdf[reviewdf.Polarity > reviewdf.Polarity.quantile(.90)]
+bottom10th = reviewdf[reviewdf.Polarity < reviewdf.Polarity.quantile(.10)]
+
+
+#Word cloud
+def show_wordcloud(data, title = None):
+    wordcloud = WordCloud(
+        background_color='white',
+        stopwords=STOPWORDS,
+        max_words=100,
+        max_font_size=40, 
+        scale=3,
+        random_state=1 # chosen at random by flipping a coin; it was heads
+    ).generate(str(data))
+
+    fig = plt.figure(1, figsize=(12, 12))
+    plt.axis('off')
+    if title: 
+        fig.suptitle(title, fontsize=20)
+        fig.subplots_adjust(top=2.3)
+
+    plt.imshow(wordcloud)
+    plt.show()
+
+
+show_wordcloud(reviewdf['Review_Token'])
+show_wordcloud(top10th['Review_Token'])
+show_wordcloud(bottom10th['Review_Token'])
