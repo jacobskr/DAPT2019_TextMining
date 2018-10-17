@@ -155,18 +155,25 @@ plt.hist(dtlist, density=True, histtype='step', cumulative=True, bins=1000)
 #Top 10th and bottom 10th percentile reviews
 top10th = reviewdf[reviewdf.Polarity > reviewdf.Polarity.quantile(.90)]
 bottom10th = reviewdf[reviewdf.Polarity < reviewdf.Polarity.quantile(.10)]
-
+new_cmap = rand_cmap(100, type='bright', first_color_black=True, last_color_black=False, verbose=True)
 
 #Word cloud
+from PIL import Image
+image = r'C:\Users\ejvpaba\Desktop\Python\controller.jpg'
+mask = np.array(Image.open(image))
+
+
 def show_wordcloud(data, title = None):
     wordcloud = WordCloud(
-        background_color='white',
+        mask=mask,
+        background_color='black',
         stopwords=STOPWORDS,
-        max_words=100,
+        max_words=150,
         max_font_size=40, 
         scale=3,
-        random_state=1 # chosen at random by flipping a coin; it was heads
-    ).generate(str(data))
+        random_state=1, # chosen at random by flipping a coin; it was heads
+        colormap='gist_rainbow'
+    ).generate_from_text(str(data))
 
     fig = plt.figure(1, figsize=(12, 12))
     plt.axis('off')
@@ -178,6 +185,7 @@ def show_wordcloud(data, title = None):
     plt.show()
 
 
-show_wordcloud(reviewdf['Review_Token'])
-show_wordcloud(top10th['Review_Token'])
-show_wordcloud(bottom10th['Review_Token'])
+show_wordcloud(reviewdf['Review'])
+show_wordcloud(top10th['Review'])
+show_wordcloud(bottom10th['Review'])
+
