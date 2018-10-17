@@ -13,9 +13,10 @@ import nltk
 from nltk.corpus import stopwords
 from textblob import TextBlob
 from elasticsearch import Elasticsearch
+import numpy as np
 #nltk.download('stopwords')
 
-file = r'C:\Users\ejvpaba\Desktop\Python\Data\Video_Games_5.json'
+file = r'C:\Users\User\Desktop\Text Mining\Group assignment\Video_Games_5.json'
 
 with open(file) as x:
     jsondata = pd.read_json(x, lines=True, chunksize=1000)
@@ -33,25 +34,6 @@ reviewdf.columns = cols_list
 print(reviewdf.head())
 print(reviewdf['Review'].head())
 del df
-
-# Stars distribustion
-stars_count = reviewdf.groupby(['Stars'], as_index=False).count()
-stars_count = stars_count[['Stars', 'Item']]
-stars_count.rename(columns={'Item': 'Count'}, inplace=True)
-plt.bar(stars_count['Stars'], stars_count['Count'])
-plt.show()
-
-# Mean rating overall vs mean rating by item
-itemlist = list(reviewdf.Item.unique())
-itemstars = reviewdf[['Item','Stars']]
-allmean = reviewdf.Stars.mean()
-itemmean = itemstars.groupby('Item', as_index=False).mean()
-plt.hist(itemmean['Stars'])
-plt.show()
-
-# Cumulative Reviews hist/line - Not sure why this takes so long
-dtlist = sorted(list(reviewdf['Date']))
-plt.hist(dtlist, density=True, histtype='step', cumulative=True, bins=1000)
 
 #Textblob Analysis
 def sentiments(df, column):
@@ -83,47 +65,28 @@ sentiments(reviewdf, 'Review')
 #
 #t1= time.time()
 
-#Ryan's Code:
-#Make Reviews all lower case
-reviewdf['Review_Clean'] = reviewdf['Review'].apply(lambda x: " ".join(x.lower() for x in x.split()))
-
-#Remove punctuation
-reviewdf['Review_Clean'] = reviewdf['Review_Clean'].str.replace('[^\w\s]','')
-
-#Remove english stop words
-stop = stopwords.words('english')
-reviewdf['Review_Clean'] = reviewdf['Review_Clean'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
-
-#Remove the 10 most common words
-freq = pd.Series(' '.join(reviewdf['Review_Clean']).split()).value_counts()[:10]
-
-#Remove the 10 rarest words
-freq = pd.Series(' '.join(reviewdf['Review_Clean']).split()).value_counts()[-10:]
-
-#Lemmatization and Tokenization
-w_tokenizer = nltk.tokenize.WhitespaceTokenizer()
-lemmatizer = nltk.stem.WordNetLemmatizer()
-
+#Kyle - make function out of Ryan's code/speed up certain lambda functions
+testdf = reviewdf
 def lemmatize_text(text):
+    w_tokenizer = nltk.tokenize.WhitespaceTokenizer()
+    lemmatizer = nltk.stem.WordNetLemmatizer()
     return [lemmatizer.lemmatize(w) for w in w_tokenizer.tokenize(text)]
 
-nltk.download('wordnet')
-reviewdf['Review_Token'] = reviewdf['Review_Clean'].apply(lemmatize_text)
+def clean_token(df, col, lang):
+    stop = stopwords.words(lang)
+    df[f'{col}_Clean'] = df[col].str.replace('[^\w\s]','').str.lower()
+    df[f'{col}_Clean'] = testdf['Review_Clean'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
+    df[f'{col}_Token'] = testdf['Review_Clean'].apply(lemmatize_text)
+    x = df[col].apply(len)
+    y = df[f'{col}_Token'].apply(len)
+    df['WordsRemoved'] = y - x
 
-#Get Review Length for both Originial Reivew and Cleaned Tokens
-reviewdf['Review_Length'] = reviewdf['Review'].apply(lemmatize_text).apply(len)
-reviewdf['Review_Clean_Length'] = reviewdf['Review_Token'].apply(len)
-
-#Calculate number of words removed
-reviewdf['WordsRemoved'] = reviewdf["Review_Length"] - reviewdf['Review_Clean_Length']
-
-#End of Ryan's code
-
+clean_token(reviewdf, 'Review', 'english')
 
 #Connect to elasticsearch
 es = Elasticsearch(['localhost'], port=9200)
 
-#Create Index
+#Create Index with specific shards
 #request_body = {
 #    "settings" : {
 #        "number_of_shards": 1,
@@ -154,3 +117,43 @@ def dftoes(dataFrame, index='index', typ='test', server='http://localhost:9200',
 
 
 dftoes(reviewdf)
+
+##Charts
+# Stars distribustion
+stars_count = reviewdf.groupby(['Stars'], as_index=False).count()
+stars_count = stars_count[['Stars', 'Item']]
+stars_count.rename(columns={'Item': 'Count'}, inplace=True)
+plt.bar(stars_count['Stars'], stars_count['Count'])
+plt.show()
+
+# Mean rating overall vs mean rating by item
+itemlist = list(reviewdf.Item.unique())
+itemstars = reviewdf[['Item','Stars']]
+allmean = reviewdf.Stars.mean()
+itemmean = itemstars.groupby('Item', as_index=False).mean()
+itemmeanarray = np.asarray(itemmean['Stars'])
+plt.hist(itemmean['Stars'])
+plt.show()
+
+
+#rescale polarity to a 1-5 scale
+def rescale(x, inlow, inhigh, outlow, outhigh):
+    polscale = ((x - inlow) / (inhigh - inlow)) * (outhigh - outlow) + outlow
+    return polscale
+
+
+reviewdf['Scaled_Polarity'] = reviewdf['Polarity'].apply(rescale, args=(-1,1,1,5))
+#Mean stars per item vs scaled polarity per item
+scaledpoldf = reviewdf[['Item','Scaled_Polarity']]
+scaledpoldf = scaledpoldf.groupby('Item', as_index=False).mean()
+scaled_polarity = np.asarray(scaledpoldf['Scaled_Polarity'])
+plt.xlim(1,5)
+plt.ylim(1,5)
+plt.xlabel('Average Stars')
+plt.ylabel('Scaled Polarity')
+plt.scatter(itemmeanarray, scaled_polarity, alpha=.25)
+
+
+# Cumulative Reviews hist/line - Not sure why this takes so long
+dtlist = sorted(list(reviewdf['Date']))
+plt.hist(dtlist, density=True, histtype='step', cumulative=True, bins=1000)
