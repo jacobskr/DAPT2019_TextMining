@@ -15,6 +15,7 @@ from textblob import TextBlob
 from elasticsearch import Elasticsearch
 from wordcloud import WordCloud, STOPWORDS
 import numpy as np
+from PIL import Image
 #nltk.download('stopwords')
 
 file = r'C:\Users\ejvpaba\Desktop\Python\Data\Video_Games_5.json'
@@ -57,9 +58,8 @@ def sentiments(df, column):
 
 sentiments(reviewdf, 'Review')
 
-#Kyle - make function out of Ryan's code/speed up certain lambda functions
 
-
+#Kyle - make functions out of Ryan's code/speed up certain lambda functions
 def lemmatize_text(text):
     w_tokenizer = nltk.tokenize.WhitespaceTokenizer()
     lemmatizer = nltk.stem.WordNetLemmatizer()
@@ -157,7 +157,6 @@ top10th = reviewdf[reviewdf.Polarity > reviewdf.Polarity.quantile(.90)]
 bottom10th = reviewdf[reviewdf.Polarity < reviewdf.Polarity.quantile(.10)]
 
 #Word cloud
-from PIL import Image
 image = r'C:\Users\ejvpaba\Desktop\Python\controller.jpg'
 mask = np.array(Image.open(image))
 
