@@ -155,7 +155,6 @@ plt.hist(dtlist, density=True, histtype='step', cumulative=True, bins=1000)
 #Top 10th and bottom 10th percentile reviews
 top10th = reviewdf[reviewdf.Polarity > reviewdf.Polarity.quantile(.90)]
 bottom10th = reviewdf[reviewdf.Polarity < reviewdf.Polarity.quantile(.10)]
-new_cmap = rand_cmap(100, type='bright', first_color_black=True, last_color_black=False, verbose=True)
 
 #Word cloud
 from PIL import Image
@@ -185,7 +184,7 @@ def show_wordcloud(data, title = None):
     plt.show()
 
 
-show_wordcloud(reviewdf['Review'])
-show_wordcloud(top10th['Review'])
-show_wordcloud(bottom10th['Review'])
+show_wordcloud(reviewdf['Review_Token'])
+show_wordcloud(top10th['Review_Token'])
+show_wordcloud(bottom10th['Review_Token'])
 
