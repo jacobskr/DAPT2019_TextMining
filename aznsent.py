@@ -2,7 +2,7 @@
 """
 Created on Tue Oct  9 18:38:52 2018
 
-@author: User
+@author: Team VP
 """
 import json
 import datetime as dt
@@ -18,7 +18,7 @@ import numpy as np
 from PIL import Image
 #nltk.download('stopwords')
 
-file = r'C:\Users\ejvpaba\Desktop\Python\Data\Video_Games_5.json'
+file = 'Video_Games_5.json'
 
 with open(file) as x:
     jsondata = pd.read_json(x, lines=True, chunksize=1000)
@@ -36,7 +36,6 @@ reviewdf.columns = cols_list
 print(reviewdf.head())
 print(reviewdf['Review'].head())
 del df
-
 
 #Textblob Analysis
 def sentiments(df, column):
@@ -149,6 +148,18 @@ plt.title('Distribution of Average Star Rating per Game')
 plt.hist(itemmean['Stars'], bins=16)
 plt.show()
 
+#Cumulative sum of comments over time
+csumdf = pd.DataFrame()
+reviewdf['One'] = 1
+csumdf['Count'] = reviewdf.groupby('Date').One.sum()
+cumulative = np.cumsum(csumdf['Count'])
+cumulative_perc = cumulative/cumulative[-1]*100
+plt.xlabel('Year')
+plt.ylabel('Comments (% of Total)')
+plt.title('Amount of Comments - Cumulative Over Time')
+plt.plot(cumulative_perc)
+plt.show()
+
 
 #rescale polarity to a 1-5 scale
 def rescale(x, inlow, inhigh, outlow, outhigh):
@@ -199,5 +210,5 @@ def show_wordcloud(data, title=None):
 
 
 show_wordcloud(reviewdf['Review_Token'])
-show_wordcloud(top10th['Review'], title='Reviews - Top 10% Polarity')
-show_wordcloud(bottom10th['Review'], title='Reviews - Bottom 10% Polarity')
+show_wordcloud(top10th['Review_Token'], title='Reviews - Top 10% Polarity')
+show_wordcloud(bottom10th['Review_Token'], title='Reviews - Bottom 10% Polarity')
