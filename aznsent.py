@@ -148,18 +148,11 @@ plt.title('Distribution of Average Star Rating per Game')
 plt.hist(itemmean['Stars'], bins=16)
 plt.show()
 
-#Cumulative sum of comments over time
-csumdf = pd.DataFrame()
-reviewdf['One'] = 1
-csumdf['Count'] = reviewdf.groupby('Date').One.sum()
-cumulative = np.cumsum(csumdf['Count'])
-cumulative_perc = cumulative/cumulative[-1]*100
+#CDF of comments over time
 plt.xlabel('Year')
 plt.ylabel('Comments (% of Total)')
-plt.title('Amount of Comments - Cumulative Over Time')
-plt.plot(cumulative_perc)
-plt.show()
-
+plt.title('Amount of Comments - CDF')
+reviewdf['Date'].hist(density=True, cumulative=True, bins=1000, grid=False)
 
 #rescale polarity to a 1-5 scale
 def rescale(x, inlow, inhigh, outlow, outhigh):
