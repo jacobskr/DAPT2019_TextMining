@@ -40,6 +40,12 @@ del df
 
 #Textblob Analysis
 def sentiments(df, column):
+    """
+    Input the dataframe and column that sentiment will be done on.
+    Creates 2 columns:
+    1. Polarity - [-1,1] How positive or negative the text is
+    2. Subjectivity - [0,1] How opinionated the text is
+    """
     polarity = []
     subjectivity = []
     i = 0
@@ -66,7 +72,14 @@ def lemmatize_text(text):
     return [lemmatizer.lemmatize(w) for w in w_tokenizer.tokenize(text)]
 
 
-def clean_token(df, col, lang):
+def clean_token(df, col, lang = 'english'):
+    """ 
+    Input the dataframe, column, and language (if not english) of the data
+    that you want processed. This will create 3 columns:
+    1. col_Clean - Lowercase text without punctuation or stopwords
+    2. col_Token - col_Clean lemmatized
+    3. WordsRemoved - count of words removed from original text
+    """
     stop = stopwords.words(lang)
     df[f'{col}_Clean'] = df[col].str.replace('[^\w\s]','').str.lower()
     df[f'{col}_Clean'] = df[f'{col}_Clean'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
@@ -76,7 +89,7 @@ def clean_token(df, col, lang):
     df['WordsRemoved'] = y - x
 
 
-clean_token(reviewdf, 'Review', 'english')
+clean_token(reviewdf, 'Review')
 
 #Connect to elasticsearch
 es = Elasticsearch(['localhost'], port=9200)
@@ -118,16 +131,22 @@ dftoes(reviewdf)
 stars_count = reviewdf.groupby(['Stars'], as_index=False).count()
 stars_count = stars_count[['Stars', 'Item']]
 stars_count.rename(columns={'Item': 'Count'}, inplace=True)
+plt.xlabel('Stars')
+plt.ylabel('Count')
+plt.title('Distribution of Stars Across All Games')
 plt.bar(stars_count['Stars'], stars_count['Count'])
 plt.show()
 
 # Mean rating overall vs mean rating by item
 itemlist = list(reviewdf.Item.unique())
-itemstars = reviewdf[['Item','Stars']]
+itemstars = reviewdf[['Item', 'Stars']]
 allmean = reviewdf.Stars.mean()
 itemmean = itemstars.groupby('Item', as_index=False).mean()
 itemmeanarray = np.asarray(itemmean['Stars'])
-plt.hist(itemmean['Stars'])
+plt.xlabel('Stars - .25 Bin Width')
+plt.ylabel('Count')
+plt.title('Distribution of Average Star Rating per Game')
+plt.hist(itemmean['Stars'], bins=16)
 plt.show()
 
 
@@ -137,20 +156,16 @@ def rescale(x, inlow, inhigh, outlow, outhigh):
     return polscale
 
 
-reviewdf['Scaled_Polarity'] = reviewdf['Polarity'].apply(rescale, args=(-1,1,1,5))
+reviewdf['Scaled_Polarity'] = reviewdf['Polarity'].apply(rescale, args=(-1, 1, 1, 5))
 #Mean stars per item vs scaled polarity per item
-scaledpoldf = reviewdf[['Item','Scaled_Polarity']]
+scaledpoldf = reviewdf[['Item', 'Scaled_Polarity']]
 scaledpoldf = scaledpoldf.groupby('Item', as_index=False).mean()
 scaled_polarity = np.asarray(scaledpoldf['Scaled_Polarity'])
-plt.xlim(1,5)
-plt.ylim(1,5)
+plt.xlim(1, 5)
+plt.ylim(1, 5)
 plt.xlabel('Average Stars')
 plt.ylabel('Scaled Polarity')
 plt.scatter(itemmeanarray, scaled_polarity, alpha=.25)
-
-# Cumulative Reviews hist/line - Not sure why this takes so long
-dtlist = sorted(list(reviewdf['Date']))
-plt.hist(dtlist, density=True, histtype='step', cumulative=True, bins=1000)
 
 #Top 10th and bottom 10th percentile reviews
 top10th = reviewdf[reviewdf.Polarity > reviewdf.Polarity.quantile(.90)]
@@ -161,22 +176,22 @@ image = r'C:\Users\ejvpaba\Desktop\Python\controller.jpg'
 mask = np.array(Image.open(image))
 
 
-def show_wordcloud(data, title = None):
+def show_wordcloud(data, title=None):
     wordcloud = WordCloud(
         mask=mask,
         background_color='black',
         stopwords=STOPWORDS,
         max_words=150,
-        max_font_size=40, 
+        max_font_size=40,
         scale=3,
-        random_state=1, # chosen at random by flipping a coin; it was heads
+        random_state=1,
         colormap='gist_rainbow'
     ).generate_from_text(str(data))
 
     fig = plt.figure(1, figsize=(12, 12))
     plt.axis('off')
-    if title: 
-        fig.suptitle(title, fontsize=20)
+    if title:
+        fig.suptitle(title, fontsize=20, color='white')
         fig.subplots_adjust(top=2.3)
 
     plt.imshow(wordcloud)
@@ -184,6 +199,5 @@ def show_wordcloud(data, title = None):
 
 
 show_wordcloud(reviewdf['Review_Token'])
-show_wordcloud(top10th['Review_Token'])
-show_wordcloud(bottom10th['Review_Token'])
-
+show_wordcloud(top10th['Review'], title='Reviews - Top 10% Polarity')
+show_wordcloud(bottom10th['Review'], title='Reviews - Bottom 10% Polarity')
