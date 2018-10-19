@@ -161,6 +161,7 @@ def rescale(x, inlow, inhigh, outlow, outhigh):
 
 
 reviewdf['Scaled_Polarity'] = reviewdf['Polarity'].apply(rescale, args=(-1, 1, 1, 5))
+
 #Mean stars per item vs scaled polarity per item
 scaledpoldf = reviewdf[['Item', 'Scaled_Polarity']]
 scaledpoldf = scaledpoldf.groupby('Item', as_index=False).mean()
@@ -169,7 +170,16 @@ plt.xlim(1, 5)
 plt.ylim(1, 5)
 plt.xlabel('Average Stars')
 plt.ylabel('Scaled Polarity')
-plt.scatter(itemmeanarray, scaled_polarity, alpha=.25)
+plt.scatter(itemmeanarray, scaled_polarity, alpha=.5, s=.5)
+plt.annotate("x=y",
+              xy=(1, 1), xycoords='data',
+              xytext=(5, 5), textcoords='data',
+              arrowprops=dict(arrowstyle="-",
+                              edgecolor = "red",
+                              linewidth=1,
+                              alpha=0.65,
+                              connectionstyle="arc3,rad=0."), 
+              )
 
 #Top 10th and bottom 10th percentile reviews
 top10th = reviewdf[reviewdf.Polarity > reviewdf.Polarity.quantile(.90)]
